@@ -55,10 +55,14 @@ xed .
 ```sh
 ./build-tipa.sh --prepare-only
 ./build-tipa.sh --skip-dependencies --output-dir ./artifacts/custom
+./build-tipa.sh --ios-version 17
+./build-tipa.sh --ios-version all --output-dir ./artifacts/local-trollstore
 ./build-tipa.sh --app /path/to/Hamster.app
 ```
 
-`--app` 只处理已经以 iOS 16.0 构建的真机 App；脚本会拒绝缺失键盘扩展、共享权限、方案资源或架构不正确的包。打包不会修改原始 App。Rime 的源码版本固定，并应用原 LibrimeKit 的输入替换 API 补丁；链接检查覆盖两个引擎、`RimeReplaceInput` 和静态 Lua 模块。内置雾凇也固定到适合此旧引擎的版本，避免引入要求更新引擎的方案配置。
+`--ios-version` 默认为 `16`，也可选择 `17`；`all` 会依次编译最低 iOS 16.0、17.0 的主 App 和两个键盘扩展，分别生成 `ios16`、`ios17` 后缀的 TIPA 和 SHA256，不覆盖彼此。两个版本使用独立的 DerivedData，完整 `.xcarchive` 和日志保留在项目 `.build/trollstore/build.*/`。上面的 `all` 命令将两个最终包归档到项目的 `artifacts/local-trollstore/`。
+
+`--app` 只处理已经按所选最低 iOS 版本构建的真机 App，不能与 `--ios-version all` 一起使用。脚本同时核对 plist 和 Mach-O 的最低版本；也会拒绝缺失键盘扩展、共享权限、方案资源或架构不正确的包。打包不会修改原始 App。Rime 的源码版本固定，并应用原 LibrimeKit 的输入替换 API 补丁；链接检查覆盖两个引擎、`RimeReplaceInput` 和静态 Lua 模块。内置雾凇也固定到适合此旧引擎的版本，避免引入要求更新引擎的方案配置。
 
 ### GitHub Actions
 

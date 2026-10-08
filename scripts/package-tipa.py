@@ -31,7 +31,7 @@ def require(condition, message):
         raise ValueError(message)
 
 
-def validate_binary(binary):
+def validate_binary(binary, minimum_ios="16.0", exact=False):
     require(binary.is_file(), f"Missing executable: {binary}")
     require(os.access(binary, os.X_OK), f"Executable permission missing: {binary}")
     require(run("/usr/bin/lipo", "-archs", binary).strip() == "arm64", f"Expected device arm64 binary: {binary}")
@@ -45,17 +45,22 @@ def validate_binary(binary):
         require(version is not None, f"Missing iOS deployment target: {binary}")
         minimum = version[1]
     parts = tuple(int(part) for part in minimum.split("."))
-    require(parts + (0,) * (3 - len(parts)) <= (16, 0, 0), f"Binary requires iOS {minimum}: {binary}")
+    actual = parts + (0,) * (3 - len(parts))
+    expected = tuple(int(part) for part in minimum_ios.split(".")) + (0,)
+    if exact:
+        require(actual == expected, f"Binary must target iOS {minimum_ios}, found {minimum}: {binary}")
+    else:
+        require(actual <= expected, f"Binary requires iOS {minimum}: {binary}")
 
 
-def validate_bundle(bundle, expected_id):
+def validate_bundle(bundle, expected_id, minimum_ios="16.0"):
     info = read_plist(bundle / "Info.plist")
     require(info["CFBundleIdentifier"] == expected_id, f"Unexpected bundle ID in {bundle}")
-    require(info.get("MinimumOSVersion") == "16.0", f"{bundle.name} must target iOS 16.0")
+    require(info.get("MinimumOSVersion") == minimum_ios, f"{bundle.name} must target iOS {minimum_ios}")
     require(info.get("CFBundleSupportedPlatforms") == ["iPhoneOS"], f"Not an iOS device bundle: {bundle}")
     executable = info["CFBundleExecutable"]
     require(Path(executable).name == executable, f"Invalid executable name in {bundle}")
-    validate_binary(bundle / executable)
+    validate_binary(bundle / executable, minimum_ios, exact=True)
     if bundle.suffix == ".appex":
         require(info["NSExtension"]["NSExtensionPointIdentifier"] == "com.apple.keyboard-service", f"Not a keyboard extension: {bundle}")
     return info
@@ -85,15 +90,16 @@ def sign_bundle(bundle, source_entitlements, entitlements_dir):
     run("/usr/bin/codesign", "--verify", "--strict", bundle)
 
 
-def package(app, output_dir):
+def package(app, output_dir, minimum_ios="16.0"):
+    require(minimum_ios in ("16.0", "17.0"), "Minimum iOS version must be 16.0 or 17.0")
     app = app.resolve()
     output_dir = output_dir.resolve()
     require(output_dir != app and app not in output_dir.parents, "Output directory must be outside the original App")
     require(app.name == "Hamster.app", "Expected Hamster.app")
-    info = validate_bundle(app, APP_ID)
+    info = validate_bundle(app, APP_ID, minimum_ios)
     require({path.name for path in (app / "PlugIns").glob("*.appex")} == {name + ".appex" for name in EXTENSIONS}, "Both keyboard extensions must be embedded")
     for name in EXTENSIONS:
-        validate_bundle(app / "PlugIns" / (name + ".appex"), APP_ID + "." + name)
+        validate_bundle(app / "PlugIns" / (name + ".appex"), APP_ID + "." + name, minimum_ios)
     for name, required in (("SharedSupport.zip", "hamster.yaml"), ("rime-ice.zip", "rime_ice.schema.yaml")):
         with zipfile.ZipFile(app / "SharedSupport" / name) as archive:
             require(archive.testzip() is None and archive.namelist(), f"Invalid bundled schema archive: {name}")
@@ -102,7 +108,7 @@ def package(app, output_dir):
     build = str(info["CFBundleVersion"])
     require(re.fullmatch(r"[0-9A-Za-z._-]+", version + "-" + build), "Invalid version for output filename")
     output_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"Hamster-{version}-{build}-ios16-arm64.tipa"
+    filename = f"Hamster-{version}-{build}-ios{minimum_ios.split('.')[0]}-arm64.tipa"
     destination = output_dir / filename
     with tempfile.TemporaryDirectory(prefix="hamster-tipa-") as staging:
         staging = Path(staging)
@@ -117,10 +123,10 @@ def package(app, output_dir):
         nested = sorted((p for p in copied_app.rglob("*") if p.suffix in (".framework", ".dylib")), key=lambda p: len(p.parts), reverse=True)
         for path in nested:
             if path.suffix == ".dylib":
-                validate_binary(path)
+                validate_binary(path, minimum_ios)
             else:
                 framework_info = read_plist(path / "Info.plist")
-                validate_binary(path / framework_info["CFBundleExecutable"])
+                validate_binary(path / framework_info["CFBundleExecutable"], minimum_ios)
             run("/usr/bin/codesign", "--force", "--sign", "-", "--timestamp=none", path)
         for name in EXTENSIONS:
             sign_bundle(copied_app / "PlugIns" / (name + ".appex"), ROOT / name / (name + ".entitlements"), staging)
@@ -142,9 +148,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--app", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--ios-version", choices=("16", "17"), default="16")
     args = parser.parse_args()
     try:
-        package(args.app, args.output_dir.resolve())
+        package(args.app, args.output_dir.resolve(), args.ios_version + ".0")
     except (ValueError, KeyError, OSError, subprocess.CalledProcessError, zipfile.BadZipFile) as error:
         detail = error.output.decode(errors="replace") if isinstance(error, subprocess.CalledProcessError) and error.output else ""
         parser.exit(1, f"Packaging failed: {error}\n{detail}")

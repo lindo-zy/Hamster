@@ -27,8 +27,12 @@ class PackagingTests(unittest.TestCase):
             sdk = subprocess.check_output(["xcrun", "--sdk", "iphoneos", "--show-sdk-path"], text=True).strip()
         source = cls.directory / "main.c"
         source.write_text("int main(void) { return 0; }\n")
-        cls.binary = cls.directory / "binary"
-        subprocess.run(["xcrun", "clang", "-target", "arm64-apple-ios16.0", "-isysroot", sdk, str(source), "-o", str(cls.binary)], check=True)
+        cls.binaries = {}
+        for minimum in ("16.0", "17.0"):
+            binary = cls.directory / ("binary-ios" + minimum)
+            subprocess.run(["xcrun", "clang", "-target", "arm64-apple-ios" + minimum, "-isysroot", sdk, str(source), "-o", str(binary)], check=True)
+            cls.binaries[minimum] = binary
+        cls.binary = cls.binaries["16.0"]
 
     @classmethod
     def tearDownClass(cls):
@@ -61,6 +65,45 @@ class PackagingTests(unittest.TestCase):
         with (path / "Info.plist").open("wb") as file:
             plistlib.dump(info, file)
         (path / "embedded.mobileprovision").write_text("fixture profile")
+
+    def retarget_app(self, minimum, replace_binaries=True):
+        import shutil
+        for bundle in (self.app, *(self.app / "PlugIns" / (name + ".appex") for name in tipa.EXTENSIONS)):
+            info = tipa.read_plist(bundle / "Info.plist")
+            info["MinimumOSVersion"] = minimum
+            with (bundle / "Info.plist").open("wb") as file:
+                plistlib.dump(info, file)
+            if replace_binaries:
+                shutil.copy2(self.binaries[minimum], bundle / info["CFBundleExecutable"])
+
+    def test_ios16_and_ios17_packages_are_distinct(self):
+        import hashlib
+        tipa.package(self.app, self.output)
+        ios16 = self.output / "Hamster-3.0.0-1-ios16-arm64.tipa"
+        original_digest = hashlib.sha256(ios16.read_bytes()).hexdigest()
+        self.retarget_app("17.0")
+        tipa.package(self.app, self.output, "17.0")
+        ios17 = self.output / "Hamster-3.0.0-1-ios17-arm64.tipa"
+        self.assertTrue(ios17.with_suffix(".tipa.sha256").is_file())
+        self.assertEqual(hashlib.sha256(ios16.read_bytes()).hexdigest(), original_digest)
+        extracted = Path(self.temp.name) / "ios17-extracted"
+        subprocess.run(["unzip", "-q", str(ios17), "-d", str(extracted)], check=True)
+        app = extracted / "Payload/Hamster.app"
+        for bundle, identifier in ((app, tipa.APP_ID), *((app / "PlugIns" / (name + ".appex"), tipa.APP_ID + "." + name) for name in tipa.EXTENSIONS)):
+            tipa.validate_bundle(bundle, identifier, "17.0")
+        subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
+
+    def test_rejects_ios17_plist_with_ios16_binary(self):
+        self.retarget_app("17.0", replace_binaries=False)
+        with self.assertRaisesRegex(ValueError, "Binary must target iOS 17.0, found 16.0"):
+            tipa.package(self.app, self.output, "17.0")
+
+    def test_rejects_ios17_app_with_ios16_keyboard(self):
+        import shutil
+        self.retarget_app("17.0")
+        shutil.copy2(self.binary, self.app / "PlugIns/SbxlmKeyboard.appex/SbxlmKeyboard")
+        with self.assertRaisesRegex(ValueError, "Binary must target iOS 17.0, found 16.0"):
+            tipa.package(self.app, self.output, "17.0")
 
     def test_signed_package_preserves_all_groups_and_removes_profiles(self):
         tipa.package(self.app, self.output)
@@ -132,3 +175,19 @@ class PackagingTests(unittest.TestCase):
         )
         self.assertIn("TrollStore package:", result.stdout)
         self.assertEqual(len(list((Path(self.temp.name) / "CLI output").glob("*.tipa"))), 1)
+
+    def test_build_script_packages_ios17(self):
+        self.retarget_app("17.0")
+        subprocess.run(
+            ["bash", str(ROOT / "build-tipa.sh"), "--app", "Hamster.app", "--ios-version", "17", "--output-dir", "CLI output"],
+            cwd=self.temp.name, check=True, capture_output=True, text=True,
+        )
+        self.assertTrue((Path(self.temp.name) / "CLI output/Hamster-3.0.0-1-ios17-arm64.tipa").is_file())
+
+    def test_all_versions_cannot_repackage_one_existing_app(self):
+        result = subprocess.run(
+            ["bash", str(ROOT / "build-tipa.sh"), "--app", "Hamster.app", "--ios-version", "all"],
+            cwd=self.temp.name, capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("requires a single --ios-version", result.stderr)
