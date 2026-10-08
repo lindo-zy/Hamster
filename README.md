@@ -16,7 +16,7 @@
 
 在 1.0 版本，很多伙伴 `clone` 项目后都无法直接运行，多数问题是被被卡在 `librime` 的编译下了，于是新版本将这步省略了。
 
-目前 [LibrimeKit](https://github.com/imfuxiao/LibrimeKit) 项目，只用来作为 [librime](https://github.com/rime/librime)  的编译项目，并使用 `Github Action` 将依赖的 Framework 编译并发布 Release。大家可以下载编译好的 Framework 使用，无需在为了编译环境而困扰。
+原 LibrimeKit 预编译发布地址已失效。本仓库的 `librimeFramework.sh` 会从固定版本源码编译 Rime 1.9.0、声笔引擎和 Lua 插件，生成 iOS arm64 的 XCFramework；无需 CocoaPods。已存在的完整 Framework 可以复用，也可以通过 `LIBRIME_FRAMEWORKS_URL` 指定原始 `Frameworks.tgz` 的镜像地址，通过 `LIBRIME_FRAMEWORKS_SHA256` 指定其 SHA256。源码路径只生成真机 arm64 切片，不包含模拟器切片。
 
 > 感谢 @amorphobia 为 LibrimeKit 提交的 Github Action 配置
 
@@ -37,6 +37,48 @@ make schema
 ```sh
 xed .
 ```
+
+## 构建 TrollStore（巨魔）安装包
+
+需要 macOS、完整 Xcode（CI 固定 Xcode 16.4）和 CMake（`brew install cmake`）。在 Apple Silicon 上，内置方案使用的旧 macOS OpenCC 工具需要 Rosetta，或者通过 `OPENCC_BINARY` 指定本机可运行的 OpenCC。GitHub workflow 使用 Intel runner。
+
+```sh
+./build-tipa.sh
+```
+
+脚本会准备依赖及内置方案，以 Release 构建主 App 和两个键盘扩展，将最低系统版本设为 **iOS 16.0**，关闭 Xcode 证书签名，随后用本地 ad-hoc 签名写入各自的权限，生成 `Payload/Hamster.app` 格式的 `.tipa`。**不需要 Apple ID、开发者证书、描述文件或签名 Secrets，也无需定期续签。** CoreTrust 签名由设备上的 TrollStore 在安装时处理。
+
+输出位置：`artifacts/trollstore/Hamster-3.0.0-1-ios16-arm64.tipa`，同时生成 `.tipa.sha256` 校验文件。版本号从构建结果读取。
+
+可选用法：
+
+```sh
+./build-tipa.sh --prepare-only
+./build-tipa.sh --skip-dependencies --output-dir ./artifacts/custom
+./build-tipa.sh --app /path/to/Hamster.app
+```
+
+`--app` 只处理已经以 iOS 16.0 构建的真机 App；脚本会拒绝缺失键盘扩展、共享权限、方案资源或架构不正确的包。打包不会修改原始 App。Rime 的源码版本固定，链接检查覆盖两个引擎和静态 Lua 模块；内置雾凇也固定到适合此旧引擎的版本，避免引入要求更新引擎的方案配置。
+
+### GitHub Actions
+
+将本次改动推送到你的 GitHub 仓库后：
+
+1. 打开 **Actions → Build TrollStore TIPA → Run workflow**，选择分支并运行。
+2. 等待构建成功，在该次运行的 **Artifacts** 下载 `Hamster-ios16-arm64-tipa`。
+3. 解压下载的 artifact ZIP，取出里面的 `.tipa`，在 iPhone/iPad 上用 TrollStore 打开并安装。
+
+workflow 也会在 `main` 的 push、指向 `main` 的 PR 和 `v*` tag push 时运行。首次运行会从源码编译依赖，耗时较长；后续使用与源码、构建脚本和 Xcode 版本绑定的缓存。workflow 只上传 Actions artifact，不自动发布 Release。
+
+### 安装与系统范围
+
+安装后先启动 Hamster，完成内置方案部署，再到 **设置 → 通用 → 键盘 → 键盘 → 添加新键盘** 添加对应键盘，并开启“允许完全访问”，以便主 App 和键盘扩展共享配置、词库及文件。
+
+根据 [TrollStore 官方说明](https://github.com/opa334/TrollStore#readme)，本包的 iOS 16+ 巨魔安装范围是 **16.0–16.6.1、16.7 RC（20H18）和 17.0**。普通 16.7.x、17.0.1 及更高系统不能因 `.tipa` 后缀或降低部署版本而获得 TrollStore 支持；设备必须已经安装可用的 TrollStore。
+
+Bundle ID 与原版相同，不能与同 ID 的 App Store 版本并存；更换安装渠道前请自行备份配置和词库。原有 iCloud/CloudKit 权限保留，但此构建没有原开发者的 Apple 服务身份，不保证 iCloud、在线方案库或推送可用。核心使用方式是本地方案、词库和键盘；证书与 Apple 服务授权是不同问题。
+
+构建及签名验证不能代替真机测试。安装、首次部署、两个键盘的启用及共享数据访问仍需在目标设备验证。
 
 # 第三方库
 

@@ -28,3 +28,10 @@ package/
 # VueJS
 /Packages/HamsterFileServer/Front/node_modules
 /Packages/HamsterFileServer/Front/dist/*
+
+# TrollStore build outputs
+/artifacts/
+/Frameworks/trollstore-build.json
+/Resources/SharedSupport/trollstore-schema-build.sha256
+*.tipa
+__pycache__/

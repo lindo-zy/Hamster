@@ -1,49 +1,70 @@
-name: Build Test
+name: Build TrollStore TIPA
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
 
+permissions:
+  contents: read
+
+concurrency:
+  group: tipa-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: macos-13
+    runs-on: macos-15-intel
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          submodules: true
+          persist-credentials: false
 
-      - name: Download Frameworks
-        uses: robinraju/release-downloader@v1.7
+      - name: Cache Rime frameworks and schemas
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
-          repository: "imfuxiao/LibrimeKit"
-          latest: true
-          fileName: "Frameworks.tgz"
+          path: |
+            Frameworks/*.xcframework
+            Frameworks/trollstore-build.json
+            Resources/SharedSupport/*.zip
+            Resources/SharedSupport/trollstore-schema-build.sha256
+          key: rime-ios16-${{ runner.os }}-${{ runner.arch }}-xcode16.4-${{ hashFiles('librimeFramework.sh', 'InputSchemaBuild.sh', 'scripts/build-rime-ios.sh', 'scripts/prepare-rime-source.py', 'scripts/create-rime-xcframeworks.py', 'scripts/validate-dependencies.py', 'Resources/SharedSupport/hamster.yaml') }}
 
-      - name: Un-tar Frameworks
+      - name: Check tools
         run: |
-          tar -xzf Frameworks.tgz -C Frameworks/..
+          xcodebuild -version
+          command -v cmake || brew install cmake
+          bash -n build-tipa.sh librimeFramework.sh InputSchemaBuild.sh scripts/build-rime-ios.sh
+          python3 -m unittest discover -s tests -v
 
-      - name: Build Schemas
-        run: |
-          make schema
+      - name: Build iOS 16 TrollStore package
+        run: bash ./build-tipa.sh
 
-      - name: Select Xcode
-        run: sudo xcode-select -s "/Applications/Xcode_15.0.1.app"
-
-      - name: Compile
-        run: |
-          xcodebuild archive -archivePath "Hamster" -scheme "Hamster" -sdk "iphoneos" -arch arm64 -configuration Release CODE_SIGNING_ALLOWED=NO
-          BUILT_PATH=$(find Hamster.xcarchive -name '*.app' -type d | head -1)
-          find "$BUILT_PATH" -type d -path '*/Frameworks/*.dylib' -exec codesign --force --sign - --timestamp=none \{\} \;
-          codesign --force --sign - --entitlements "Hamster/Hamster.entitlements" --timestamp=none "$BUILT_PATH"
-          tar -acf Hamster.xcarchive.tgz Hamster.xcarchive
-
-      - name: Upload xcarchive
-        uses: actions/upload-artifact@v3
+      - name: Upload TIPA
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: Hamster-ios-arm64-xcarchive
-          path: Hamster.xcarchive.tgz
+          name: Hamster-ios16-arm64-tipa
+          path: |
+            artifacts/trollstore/*.tipa
+            artifacts/trollstore/*.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload build diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: Hamster-build-diagnostics
+          path: .build/trollstore/build.*/xcodebuild.log
+          if-no-files-found: ignore
+          retention-days: 7
