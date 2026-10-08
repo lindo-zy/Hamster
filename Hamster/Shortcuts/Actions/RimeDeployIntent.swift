@@ -26,7 +26,7 @@ struct RimeDeployIntent: AppIntent {
   static var description = IntentDescription("仓输入法 - RIME 重新部署")
 
   @MainActor
-  func perform() async throws -> some ReturnsValue {
+  func perform() async throws -> some IntentResult {
     HamsterAppDependencyContainer.shared.mainViewModel.navigationToRIME()
     HamsterAppDependencyContainer.shared.mainViewModel.execShortcutCommand(.rimeDeploy)
     return .result()

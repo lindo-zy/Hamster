@@ -24,7 +24,7 @@ struct RimeSyncIntent: AppIntent {
     .alwaysAllowed
   }
 
-  func perform() async throws -> some ReturnsValue & ProvidesDialog {
+  func perform() async throws -> some IntentResult & ProvidesDialog {
     do {
       let hamsterConfiguration = HamsterAppDependencyContainer.shared.configuration
       // 先打开iCloud地址，防止Crash
