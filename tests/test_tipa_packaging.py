@@ -115,3 +115,11 @@ class PackagingTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "outside the original App"):
             tipa.package(self.app, self.app / "output")
         self.assertFalse((self.app / "output").exists())
+
+    def test_build_script_packages_relative_paths_without_xcode(self):
+        result = subprocess.run(
+            ["bash", str(ROOT / "build-tipa.sh"), "--app", "Hamster.app", "--output-dir", "CLI output"],
+            cwd=self.temp.name, check=True, capture_output=True, text=True,
+        )
+        self.assertIn("TrollStore package:", result.stdout)
+        self.assertEqual(len(list((Path(self.temp.name) / "CLI output").glob("*.tipa"))), 1)
