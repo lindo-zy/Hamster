@@ -4,6 +4,7 @@ from pathlib import Path
 import hashlib
 import json
 import plistlib
+import re
 import subprocess
 import sys
 import zipfile
@@ -13,6 +14,11 @@ FRAMEWORKS = ("librime", "librime-sbxlm", "boost_atomic", "boost_filesystem", "b
 
 
 def validate_frameworks():
+    project = (ROOT / "Hamster.xcodeproj/project.pbxproj").read_text()
+    referenced = set(re.findall(r'path = "?([^;"\s]+)\.xcframework"?;', project))
+    for package in (ROOT / "Packages").glob("*/Package.swift"):
+        referenced.update(re.findall(r'path: "\.\./\.\./Frameworks/([^"/]+)\.xcframework"', package.read_text()))
+    assert referenced == set(FRAMEWORKS), f"Framework build list differs from project/package references: {sorted(referenced.symmetric_difference(FRAMEWORKS))}"
     manifest_path = ROOT / "Frameworks/trollstore-build.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else None
     if manifest:

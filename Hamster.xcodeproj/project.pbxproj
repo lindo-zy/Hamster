@@ -33,9 +33,6 @@
 		C00C26DF2B069D6A00E92F89 /* libopencc.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C00C26C32B069D6A00E92F89 /* libopencc.xcframework */; };
 		C00C26E02B069D6A00E92F89 /* libopencc.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C00C26C32B069D6A00E92F89 /* libopencc.xcframework */; };
 		C00C26E12B069D6A00E92F89 /* libopencc.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C00C26C32B069D6A00E92F89 /* libopencc.xcframework */; };
-		C00C26E22B069D6A00E92F89 /* boost_locale.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C00C26C42B069D6A00E92F89 /* boost_locale.xcframework */; };
-		C00C26E32B069D6A00E92F89 /* boost_locale.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C00C26C42B069D6A00E92F89 /* boost_locale.xcframework */; };
-		C00C26E42B069D6A00E92F89 /* boost_locale.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C00C26C42B069D6A00E92F89 /* boost_locale.xcframework */; };
 		C00C26E52B069D6A00E92F89 /* libmarisa.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C00C26C52B069D6A00E92F89 /* libmarisa.xcframework */; };
 		C00C26E62B069D6B00E92F89 /* libmarisa.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C00C26C52B069D6A00E92F89 /* libmarisa.xcframework */; };
 		C00C26E72B069D6B00E92F89 /* libmarisa.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C00C26C52B069D6A00E92F89 /* libmarisa.xcframework */; };
@@ -121,7 +118,6 @@
 		C00C26C12B069D6A00E92F89 /* librime-sbxlm.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = "librime-sbxlm.xcframework"; sourceTree = "<group>"; };
 		C00C26C22B069D6A00E92F89 /* boost_atomic.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = boost_atomic.xcframework; sourceTree = "<group>"; };
 		C00C26C32B069D6A00E92F89 /* libopencc.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = libopencc.xcframework; sourceTree = "<group>"; };
-		C00C26C42B069D6A00E92F89 /* boost_locale.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = boost_locale.xcframework; sourceTree = "<group>"; };
 		C00C26C52B069D6A00E92F89 /* libmarisa.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = libmarisa.xcframework; sourceTree = "<group>"; };
 		C00C26C62B069D6A00E92F89 /* librime.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = librime.xcframework; sourceTree = "<group>"; };
 		C00E006C2A1B6AFD00180F81 /* zh */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = zh; path = zh.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -180,7 +176,6 @@
 				C00C26D02B069D6A00E92F89 /* libglog.xcframework in Frameworks */,
 				C00C26D32B069D6A00E92F89 /* libyaml-cpp.xcframework in Frameworks */,
 				C00C26E52B069D6A00E92F89 /* libmarisa.xcframework in Frameworks */,
-				C00C26E22B069D6A00E92F89 /* boost_locale.xcframework in Frameworks */,
 				C053ADC32A5D503200EA7EEE /* HamsteriOS in Frameworks */,
 				C00C26CD2B069D6A00E92F89 /* boost_system.xcframework in Frameworks */,
 				C00C26DC2B069D6A00E92F89 /* boost_atomic.xcframework in Frameworks */,
@@ -199,7 +194,6 @@
 				C00C26D12B069D6A00E92F89 /* libglog.xcframework in Frameworks */,
 				C00C26D42B069D6A00E92F89 /* libyaml-cpp.xcframework in Frameworks */,
 				C00C26E62B069D6B00E92F89 /* libmarisa.xcframework in Frameworks */,
-				C00C26E32B069D6A00E92F89 /* boost_locale.xcframework in Frameworks */,
 				C00C26B72B0698E300E92F89 /* HamsterKeyboardKit in Frameworks */,
 				C00C26CE2B069D6A00E92F89 /* boost_system.xcframework in Frameworks */,
 				C00C26DD2B069D6A00E92F89 /* boost_atomic.xcframework in Frameworks */,
@@ -219,7 +213,6 @@
 				C00C26EC2B069E0400E92F89 /* HamsterKeyboardKit in Frameworks */,
 				C00C26D52B069D6A00E92F89 /* libyaml-cpp.xcframework in Frameworks */,
 				C00C26E72B069D6B00E92F89 /* libmarisa.xcframework in Frameworks */,
-				C00C26E42B069D6A00E92F89 /* boost_locale.xcframework in Frameworks */,
 				C00C26CF2B069D6A00E92F89 /* boost_system.xcframework in Frameworks */,
 				C00C26DE2B069D6A00E92F89 /* boost_atomic.xcframework in Frameworks */,
 				C00C26CC2B069D6A00E92F89 /* boost_regex.xcframework in Frameworks */,
@@ -236,7 +229,6 @@
 			children = (
 				C00C26C22B069D6A00E92F89 /* boost_atomic.xcframework */,
 				C00C26BB2B069D6900E92F89 /* boost_filesystem.xcframework */,
-				C00C26C42B069D6A00E92F89 /* boost_locale.xcframework */,
 				C00C26BC2B069D6900E92F89 /* boost_regex.xcframework */,
 				C00C26BD2B069D6900E92F89 /* boost_system.xcframework */,
 				C00C26BE2B069D6900E92F89 /* libglog.xcframework */,
