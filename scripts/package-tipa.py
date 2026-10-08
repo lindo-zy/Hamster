@@ -94,9 +94,10 @@ def package(app, output_dir):
     require({path.name for path in (app / "PlugIns").glob("*.appex")} == {name + ".appex" for name in EXTENSIONS}, "Both keyboard extensions must be embedded")
     for name in EXTENSIONS:
         validate_bundle(app / "PlugIns" / (name + ".appex"), APP_ID + "." + name)
-    for name in ("SharedSupport.zip", "rime-ice.zip"):
-        with zipfile.ZipFile(app / name) as archive:
+    for name, required in (("SharedSupport.zip", "hamster.yaml"), ("rime-ice.zip", "rime_ice.schema.yaml")):
+        with zipfile.ZipFile(app / "SharedSupport" / name) as archive:
             require(archive.testzip() is None and archive.namelist(), f"Invalid bundled schema archive: {name}")
+            require(required in archive.namelist(), f"Missing {required} in bundled schema archive: {name}")
     version = str(info["CFBundleShortVersionString"])
     build = str(info["CFBundleVersion"])
     require(re.fullmatch(r"[0-9A-Za-z._-]+", version + "-" + build), "Invalid version for output filename")

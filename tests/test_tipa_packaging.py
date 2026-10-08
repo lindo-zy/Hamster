@@ -42,9 +42,10 @@ class PackagingTests(unittest.TestCase):
         self.create_bundle(self.app, tipa.APP_ID)
         for name in tipa.EXTENSIONS:
             self.create_bundle(self.app / "PlugIns" / (name + ".appex"), tipa.APP_ID + "." + name)
-        for name in ("SharedSupport.zip", "rime-ice.zip"):
-            with zipfile.ZipFile(self.app / name, "w") as archive:
-                archive.writestr("fixture.yaml", "schema: fixture\n")
+        (self.app / "SharedSupport").mkdir()
+        for name, required in (("SharedSupport.zip", "hamster.yaml"), ("rime-ice.zip", "rime_ice.schema.yaml")):
+            with zipfile.ZipFile(self.app / "SharedSupport" / name, "w") as archive:
+                archive.writestr(required, "schema: fixture\n")
 
     def create_bundle(self, path, identifier):
         path.mkdir(parents=True)
@@ -68,6 +69,8 @@ class PackagingTests(unittest.TestCase):
         with zipfile.ZipFile(artifact) as archive:
             self.assertIsNone(archive.testzip())
             self.assertFalse(any(name.endswith("embedded.mobileprovision") for name in archive.namelist()))
+            for name in ("SharedSupport.zip", "rime-ice.zip"):
+                self.assertIn("Payload/Hamster.app/SharedSupport/" + name, archive.namelist())
             archive.extractall(Path(self.temp.name) / "extracted")
         extracted = Path(self.temp.name) / "extracted/Payload/Hamster.app"
         for bundle in (extracted, *(extracted / "PlugIns" / (name + ".appex") for name in tipa.EXTENSIONS)):
@@ -102,8 +105,14 @@ class PackagingTests(unittest.TestCase):
             tipa.package(self.app, self.output)
 
     def test_rejects_corrupt_schema(self):
-        (self.app / "rime-ice.zip").write_text("not a ZIP")
+        (self.app / "SharedSupport/rime-ice.zip").write_text("not a ZIP")
         with self.assertRaises(zipfile.BadZipFile):
+            tipa.package(self.app, self.output)
+
+    def test_rejects_incomplete_schema(self):
+        with zipfile.ZipFile(self.app / "SharedSupport/rime-ice.zip", "w") as archive:
+            archive.writestr("unrelated.yaml", "fixture\n")
+        with self.assertRaisesRegex(ValueError, "Missing rime_ice.schema.yaml"):
             tipa.package(self.app, self.output)
 
     def test_rejects_non_executable_binary(self):
