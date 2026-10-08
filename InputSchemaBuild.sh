@@ -3,7 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT="$ROOT/Resources/SharedSupport"
-SCHEMA_HASH="$(shasum -a 256 "$ROOT/InputSchemaBuild.sh" "$OUTPUT/hamster.yaml" | shasum -a 256 | awk '{print $1}')"
+SCHEMA_HASH="$(shasum -a 256 "$ROOT/InputSchemaBuild.sh" "$OUTPUT/hamster.yaml" | awk '{print $1}' | shasum -a 256 | awk '{print $1}')"
 if [[ -f "$OUTPUT/trollstore-schema-build.sha256" ]] && [[ "$(cat "$OUTPUT/trollstore-schema-build.sha256")" == "$SCHEMA_HASH" ]] && python3 - "$OUTPUT" <<'CHECK'
 from pathlib import Path
 import sys, zipfile
