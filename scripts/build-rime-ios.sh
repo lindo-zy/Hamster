@@ -127,11 +127,15 @@ for variant in librime librime-sbxlm; do
 done
 # Link checks catch missing dependencies and static Lua registration; no device execution.
 cat > "$WORK/link-check.c" <<'EOF'
-extern void *rime_get_api(void);
-int main(void) { return rime_get_api() == 0; }
+#include "rime_api.h"
+int main(void) {
+  RimeApi *api = rime_get_api();
+  return api == 0 || !RimeReplaceInput(0, 0, 0, "");
+}
 EOF
 for variant in librime librime-sbxlm; do
-  "$CLANG" -target arm64-apple-ios16.0 -isysroot "$SDK" "$WORK/link-check.c" \
+  "$CLANG" -target arm64-apple-ios16.0 -isysroot "$SDK" \
+    -I"$ROOT/Packages/RimeKit/Sources/C" "$WORK/link-check.c" \
     "$WORK/build-$variant/lib/librime.a" "$PREFIX/lib/"*.a "$WORK/boost-stage/lib/"*.a \
     -lc++ -liconv -o "$WORK/link-check-$variant"
 done

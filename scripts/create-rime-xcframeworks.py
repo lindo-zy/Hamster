@@ -16,7 +16,7 @@ for name in ("atomic", "filesystem", "regex", "system"):
 for name in ("glog", "leveldb", "marisa", "opencc", "yaml-cpp"):
     libraries["lib" + name] = work / ("install/lib/lib" + name + ".a")
 manifest = {"minimum_ios": "16.0", "engines": {}, "libraries": {}}
-manifest["build_scripts"] = {name: hashlib.sha256((root / "scripts" / name).read_bytes()).hexdigest() for name in ("build-rime-ios.sh", "prepare-rime-source.py", "create-rime-xcframeworks.py", "validate-dependencies.py")}
+manifest["build_scripts"] = {name: hashlib.sha256((root / "scripts" / name).read_bytes()).hexdigest() for name in ("build-rime-ios.sh", "prepare-rime-source.py", "rime-hamster.patch", "create-rime-xcframeworks.py", "validate-dependencies.py")}
 for variant in ("librime", "librime-sbxlm", "lua"):
     manifest["engines"][variant] = subprocess.check_output(["git", "-C", str(work / variant), "rev-parse", "HEAD"], text=True).strip()
 for name, library in libraries.items():

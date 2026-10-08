@@ -14,6 +14,8 @@ FRAMEWORKS = ("librime", "librime-sbxlm", "boost_atomic", "boost_filesystem", "b
 
 
 def validate_frameworks():
+    wrapper = (ROOT / "Packages/RimeKit/Sources/ObjC/irime_api.m").read_text()
+    required_api = set(re.findall(r"\b(Rime[A-Z][A-Za-z0-9_]*)\s*\(", wrapper))
     project = (ROOT / "Hamster.xcodeproj/project.pbxproj").read_text()
     referenced = set(re.findall(r'path = "?([^;"\s]+)\.xcframework"?;', project))
     for package in (ROOT / "Packages").glob("*/Package.swift"):
@@ -22,7 +24,7 @@ def validate_frameworks():
     manifest_path = ROOT / "Frameworks/trollstore-build.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else None
     if manifest:
-        for name in ("build-rime-ios.sh", "prepare-rime-source.py", "create-rime-xcframeworks.py", "validate-dependencies.py"):
+        for name in ("build-rime-ios.sh", "prepare-rime-source.py", "rime-hamster.patch", "create-rime-xcframeworks.py", "validate-dependencies.py"):
             assert manifest.get("build_scripts", {}).get(name) == hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest(), "Rime build scripts changed; rebuild the frameworks."
     for name in FRAMEWORKS:
         framework = ROOT / "Frameworks" / (name + ".xcframework")
@@ -36,6 +38,10 @@ def validate_frameworks():
         if manifest:
             assert hashlib.sha256(library.read_bytes()).hexdigest() == manifest["libraries"][name], f"Framework checksum mismatch: {name}"
         assert "arm64" in subprocess.check_output(["/usr/bin/lipo", "-archs", str(library)], text=True).split()
+        if name in ("librime", "librime-sbxlm"):
+            symbols = subprocess.check_output(["/usr/bin/nm", "-gU", str(library)], text=True)
+            exported_api = set(re.findall(r"\bT _(Rime[A-Z][A-Za-z0-9_]*)$", symbols, re.MULTILINE))
+            assert required_api <= exported_api, f"Missing Hamster APIs in {name}: {sorted(required_api - exported_api)}"
 
 
 def validate_schemas():

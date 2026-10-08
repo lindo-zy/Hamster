@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
-"""Apply Hamster's original static Lua registration to the pinned sources."""
+"""Apply Hamster's original input API and static Lua registration."""
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 
 source, lua = (Path(value) for value in sys.argv[1:])
+patch = Path(__file__).resolve().with_name("rime-hamster.patch")
+check = subprocess.run(["git", "-C", str(source), "apply", "--check", str(patch)], capture_output=True)
+if check.returncode == 0:
+    subprocess.run(["git", "-C", str(source), "apply", str(patch)], check=True)
+else:
+    # Repeated builds retain the patched source checkout.
+    subprocess.run(["git", "-C", str(source), "apply", "--reverse", "--check", str(patch)], check=True)
 target = source / "plugins/lua"
 if target.exists():
     shutil.rmtree(target)
