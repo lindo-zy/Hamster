@@ -69,10 +69,10 @@ xed .
 将本次改动推送到你的 GitHub 仓库后：
 
 1. 打开 **Actions → Build TrollStore TIPA → Run workflow**，选择分支并运行。
-2. 等待构建成功，在该次运行的 **Artifacts** 下载 `Hamster-ios16-arm64-tipa`。
+2. 等待构建成功，在该次运行的 **Artifacts** 下载 `Hamster-ios16-arm64-tipa` 或 `Hamster-ios17-arm64-tipa`，分别对应最低 iOS 16.0、17.0 的独立构建。
 3. 解压下载的 artifact ZIP，取出里面的 `.tipa`，在 iPhone/iPad 上用 TrollStore 打开并安装。
 
-workflow 也会在 `main` 的 push、指向 `main` 的 PR 和 `v*` tag push 时运行。首次运行会从源码编译依赖，耗时较长；后续使用与源码、构建脚本和 Xcode 版本绑定的缓存。workflow 只上传 Actions artifact，不自动发布 Release。
+workflow 每次都会通过 `build-tipa.sh --ios-version all` 依次编译两个版本，并分别上传 TIPA 和 SHA256 校验文件；也会在 `main` 的 push、指向 `main` 的 PR 和 `v*` tag push 时运行。首次运行会从源码编译依赖，耗时较长；后续使用与源码、构建脚本和 Xcode 版本绑定的缓存。workflow 只上传 Actions artifact，不自动发布 Release。
 
 ### 安装与系统范围
 

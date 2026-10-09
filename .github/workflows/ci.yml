@@ -61,16 +61,27 @@ jobs:
             Resources/SharedSupport/trollstore-schema-build.sha256
           key: ${{ steps.rime-cache.outputs.cache-primary-key }}
 
-      - name: Build iOS 16 TrollStore package
-        run: bash ./build-tipa.sh --skip-dependencies
+      - name: Build iOS 16 and iOS 17 TrollStore packages
+        run: bash ./build-tipa.sh --ios-version all --skip-dependencies
 
-      - name: Upload TIPA
+      - name: Upload iOS 16 TIPA
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: Hamster-ios16-arm64-tipa
           path: |
-            artifacts/trollstore/*.tipa
-            artifacts/trollstore/*.sha256
+            artifacts/trollstore/*-ios16-arm64.tipa
+            artifacts/trollstore/*-ios16-arm64.tipa.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload iOS 17 TIPA
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: Hamster-ios17-arm64-tipa
+          path: |
+            artifacts/trollstore/*-ios17-arm64.tipa
+            artifacts/trollstore/*-ios17-arm64.tipa.sha256
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
